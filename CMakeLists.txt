@@ -6,8 +6,8 @@ include(FetchContent)
 
 FetchContent_Declare(
 	luau
-	GIT_REPOSITORY https://github.com/luau-lang/luau.git
-	GIT_TAG 0.617
+	GIT_REPOSITORY https://github.com/Robox-Corporation/luau-edit.git
+	GIT_TAG 0.591
 )
 
 message("Fetching luau...")
