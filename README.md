@@ -1,6 +1,8 @@
 # 🏠 local_rcc
+**thanks to 7ap, EpixScripts, and glass51 (this project is truly amazing)**  
+*Selfhosted game servers for the ~~latest~~ semi-modern versions of Roblox. (currently works with aug 10 2022 to dec 2022, by messing with signatures you can get newer versions)*  
 
-*Selfhosted game servers for the ~~latest~~ semi-modern versions of Roblox. (currently works with aug 10 2022 to dec 2022, by messing with signatures you can get newer versions)*
+this exists mainly because i wanted to get versions without byfron working
 
 **local_rcc** is a library that works with Roblox Studio (currently Windows only)
 and allows the Roblox Player to connect to a Roblox Studio hosted server.
