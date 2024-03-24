@@ -29,20 +29,29 @@ void operator delete(void* ptr) noexcept {
 }
 
 namespace types {
-	typedef std::string (*compile)(const std::string& source, int target, int options);
+	typedef std::string(*compile)(const std::string& source, int target, int options);
 	typedef void* (*deserialize_item)(void* self, void* result, void* in_bitstream, int item_type);
 	enum item_type { client_qos = 0x1f };
 	enum network_value_format { protected_string_bytecode = 0x2f };
 }
 
 namespace hooks {
-	SafetyHookInline compile {};
-	SafetyHookInline deserialize_item {};
+	SafetyHookInline compile{};
+	SafetyHookInline deserialize_item{};
 }
 
 types::compile compile;
 
 std::string compile_hook(const std::string& source, int target, int options) {
+	// TODO: figure out why blank scripts don't compile properly (they error in dev console, but not a big deal since they dont do anything anyway)
+	
+	// for some reason older studios (i believe feb 2023 and below) like to spam call LuaVM::compile with random args (that cause a crash) and i literally have no idea why
+	if (target != 0) {
+		return ""; // if the target isn't 0 don't compile it (prevent crash)
+	}
+	if (options != 8) {
+		return ""; // if the options int isn't 8 don't compile it (prevent crash)
+	}
 	std::println(
 		"LuaVM::compile(source: {}, target: {}, options: {})",
 		"...", target, options
@@ -62,7 +71,7 @@ std::string compile_hook(const std::string& source, int target, int options) {
 		}
 	};
 
-	bytecode_encoder_client encoder {};
+	bytecode_encoder_client encoder{};
 
 	const char* special_globals[] = {
 		"game",
@@ -75,7 +84,7 @@ std::string compile_hook(const std::string& source, int target, int options) {
 		nullptr
 	};
 
-	std::string bytecode = Luau::compile(source, {2, 1, 0, "Vector3", "new", nullptr, special_globals}, {}, &encoder);
+	std::string bytecode = Luau::compile(source, { 2, 1, 0, "Vector3", "new", nullptr, special_globals }, {}, &encoder);
 
 	size_t compressed_bytecode_capacity = ZSTD_compressBound(bytecode.length());
 	uint32_t uncompressed_bytecode_size = static_cast<uint32_t>(bytecode.length());
@@ -116,6 +125,7 @@ void* deserialize_item_hook(void* self, void* deserialized_item, void* in_bitstr
 	);
 
 	if (item_type == types::item_type::client_qos) {
+		std::println("Bad qos");
 		std::memset(deserialized_item, 0, 16);
 		return deserialized_item;
 	}
@@ -154,8 +164,14 @@ void pattern_scan() {
 		reinterpret_cast<void*>(compile)
 	);
 
+	/*
+	old signature
 	deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
 		start, size, "48 89 5C 24 ?? 48 89 74 24 ?? 48 89 54 24 ?? 55 57 41 56 48 8B EC 48 83 EC 40 49 8B F8"
+	));
+	*/
+	deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
+		start, size, "48 89 5C 24 08 48 89 54 24 10 55 56 57 41 56 41 57 48 8D 6C 24 C9 48 81 EC C0000000 4D 8B F0"
 	));
 
 	std::println(
@@ -163,8 +179,14 @@ void pattern_scan() {
 		reinterpret_cast<void*>(deserialize_item)
 	);
 
+	/*
+	old signature
 	generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
 		start, size, "C6 44 24 ?? 06 EB ?? 48 3B 15"
+	));
+	*/
+	generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
+		start, size, "C6 44 24 ?? 06 EB ?? 48 8D 05"
 	));
 
 	std::println(
