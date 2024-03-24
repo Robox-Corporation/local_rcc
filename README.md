@@ -1,6 +1,6 @@
 # 🏠 local_rcc
 
-*Selfhosted game servers for the latest versions of Roblox.*
+*Selfhosted game servers for the ~~latest~~ semi-modern versions of Roblox.*
 
 **local_rcc** is a library that works with Roblox Studio (currently Windows only)
 and allows the Roblox Player to connect to a Roblox Studio hosted server.
