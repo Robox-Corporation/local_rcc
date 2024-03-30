@@ -19,6 +19,10 @@
 #include <zstd.h>
 
 const HMODULE module = GetModuleHandle(NULL);
+// some variables to mess with signatures/addresses (default is configured to work with aug 10 2022 - december 2022)
+bool Use2023Addresses = false;
+bool DeserializeAddress2022 = true;
+bool Use2023MCompileAddresses = false; // there is a function that has the same instructions on may and june 2023 (can probably remove this var and just add the C3 to the main address)
 
 void* operator new(size_t size) {
 	return reinterpret_cast<void* (*)(size_t size)>(GetProcAddress(module, "rbxAllocate"))(size);
@@ -155,39 +159,51 @@ void pattern_scan() {
 	MODULEINFO info; GetModuleInformation(GetCurrentProcess(), module, &info, sizeof(info));
 	void* start = reinterpret_cast<void*>(module); size_t size = info.SizeOfImage;
 
-	compile = reinterpret_cast<types::compile>(Pattern16::scan(
-		start, size, "33 C0 48 C7 41 18 0F 00 00 00 48 89 01 48 89 41 10 88 01 48 8B C1"
-	));
+	if (!Use2023MCompileAddresses) { // the 2023M signature is the least used (only used for like 2 months so it makes more sense to put the normal one on top)
+		compile = reinterpret_cast<types::compile>(Pattern16::scan(
+			start, size, "33 C0 48 C7 41 18 0F 00 00 00 48 89 01 48 89 41 10 88 01 48 8B C1"
+		));
+	}
+	else
+	{
+		compile = reinterpret_cast<types::compile>(Pattern16::scan(
+			start, size, "33 C0 48 C7 41 18 0F 00 00 00 48 89 01 48 89 41 10 88 01 48 8B C1 C3" // we could probably just make this the normal address too but just incase i made it separate
+		));
+	}
 
 	std::println(
 		"Found compile @ {:p}",
 		reinterpret_cast<void*>(compile)
 	);
 
-	/*
-	old signature
-	deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
-		start, size, "48 89 5C 24 ?? 48 89 74 24 ?? 48 89 54 24 ?? 55 57 41 56 48 8B EC 48 83 EC 40 49 8B F8"
-	));
-	*/
-	deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
-		start, size, "48 89 5C 24 08 48 89 54 24 10 55 56 57 41 56 41 57 48 8D 6C 24 C9 48 81 EC C0000000 4D 8B F0"
-	));
+	if (Use2023Addresses && !DeserializeAddress2022) {
+		deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
+			start, size, "48 89 5C 24 ?? 48 89 74 24 ?? 48 89 54 24 ?? 55 57 41 56 48 8B EC 48 83 EC 40 49 8B F8"
+		));
+	}
+	else
+	{
+		deserialize_item = reinterpret_cast<types::deserialize_item>(Pattern16::scan(
+			start, size, "48 89 5C 24 08 48 89 54 24 10 55 56 57 41 56 41 57 48 8D 6C 24 C9 48 81 EC C0000000 4D 8B F0"
+		));
+	}
 
 	std::println(
 		"Found deserialize_item @ {:p}",
 		reinterpret_cast<void*>(deserialize_item)
 	);
 
-	/*
-	old signature
-	generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
-		start, size, "C6 44 24 ?? 06 EB ?? 48 3B 15"
-	));
-	*/
-	generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
-		start, size, "C6 44 24 ?? 06 EB ?? 48 8D 05"
-	));
+	if (Use2023Addresses){
+		generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
+			start, size, "C6 44 24 ?? 06 EB ?? 48 3B 15"
+		));
+	}
+	else
+	{
+		generate_schema_definition_packet = reinterpret_cast<uintptr_t>(Pattern16::scan(
+			start, size, "C6 44 24 ?? 06 EB ?? 48 8D 05"
+		));
+	}
 
 	std::println(
 		"Found generate_schema_definition_packet @ {:p}",
